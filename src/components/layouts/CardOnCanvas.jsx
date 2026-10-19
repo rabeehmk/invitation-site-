@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import LayoutPhoto from './LayoutPhoto';
-import { resolveCardPhoto, resolvePageBackground, buildPageBackgroundStyle, pageBackgroundClass, formatProseDate, shouldUseCoupleAnimation } from './layoutUtils';
+import { resolveCardPhoto, resolveSecondaryPhoto, resolvePageBackground, buildPageBackgroundStyle, pageBackgroundClass, formatProseDate, shouldUseCoupleAnimation } from './layoutUtils';
 import { formatEventDate } from '../../utils/dateUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
@@ -32,6 +32,7 @@ export default function CardOnCanvas({ state, ctx, coverPhotoUrl }) {
       >
         <LayoutPhoto
           src={photo}
+          secondarySrc={resolveSecondaryPhoto(state, photo)}
           frame={state.religion === 'hindu' ? 'temple-arch' : state.religion === 'muslim' ? 'mihrab-arch' : state.religion === 'sikh' ? 'rounded' : 'rounded'}
           className="canvas-card-photo"
           religion={state.religion}

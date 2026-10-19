@@ -3,7 +3,7 @@ import { getReligionLabels } from '../../config/religionLabels';
 import { resolveLayoutStructure } from '../../config/layoutStructures';
 import { getTemplateById } from '../../config/index';
 import { FONT_PAIRS } from '../../config/religions';
-import { ensureReadableColor } from '../../utils/colorUtils';
+import { ensureReadableColor, isLightBackground } from '../../utils/colorUtils';
 
 /** Photo priority: upload → bride → groom → preset/cover → null */
 export function shouldUseCoupleAnimation(state) {
@@ -50,8 +50,14 @@ export function resolveHeroPhoto(state, coverPhotoUrl) {
   return getPresetImageUrl(state.eventType || 'wedding', state.presetIdx || 0);
 }
 
-export function resolveSecondaryPhoto(state) {
-  if (state.groomPhoto && state.bridePhoto && state.groomPhoto !== state.bridePhoto) {
+/** Groom photo to pair with the bride's — only when the bride's photo is the one being shown */
+export function resolveSecondaryPhoto(state, primary) {
+  if (
+    state.groomPhoto &&
+    state.bridePhoto &&
+    state.groomPhoto !== state.bridePhoto &&
+    primary === state.bridePhoto
+  ) {
     return state.groomPhoto;
   }
   return null;
@@ -60,14 +66,19 @@ export function resolveSecondaryPhoto(state) {
 export function useLayoutContext(state, template, hijriDate, hasFamilyDetails) {
   const tpl = template || getTemplateById(state.templateId || state.selectedTemplateId);
   const structure = resolveLayoutStructure(tpl);
-  const labels = getReligionLabels(state.religion || 'custom');
+  const baseLabels = getReligionLabels(state.religion || 'custom');
+  // A family's own invitation leads with its function name (e.g. "Walima at Bride's Home")
+  const labels = state.sideEventName
+    ? { ...baseLabels, ceremonyName: state.sideEventName, invitationBadge: state.sideEventName }
+    : baseLabels;
   const fonts = FONT_PAIRS[state.fontPair || tpl?.fontPair] || FONT_PAIRS['serif-script'];
   const palette = tpl?.palette || {};
   const accent = ensureReadableColor(
     state.accentColor || palette.primary || '#D4AF37',
     palette.bg,
     [palette.secondary, palette.primary],
-    1.8
+    // Dark pages need a stronger minimum; light pages keep deliberate soft pairings
+    isLightBackground(palette.bg) ? 1.8 : 3
   );
 
   return {

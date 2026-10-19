@@ -18,6 +18,7 @@ export default function EnvelopeIntroEditor({ formState, onChange }) {
     audioEnabled = true,
     audioTrack = 'none',
     customAudioUrl = '',
+    customAudioName = '',
     musicStartAt = 0,
     musicVolume = 70,
     musicFadeIn = true,
@@ -27,7 +28,7 @@ export default function EnvelopeIntroEditor({ formState, onChange }) {
     envelopeLetterText = ''
   } = formState;
 
-  const track = getMusicTrack(audioTrack, customAudioUrl);
+  const track = getMusicTrack(audioTrack, customAudioUrl, customAudioName);
   const hasMusic = audioEnabled && !!track.url;
   const monogram = names.trim() ? names.trim().charAt(0).toUpperCase() : 'A';
 

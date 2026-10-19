@@ -7,20 +7,32 @@ const FIELD_STATE_MAP = {
   muhurthamDate: 'date',
   nikahDate: 'date',
   matrimonyDate: 'date',
+  anandKarajDate: 'date',
   eventDate: 'date',
   templeVenue: 'venueName',
   mosqueVenue: 'venueName',
   churchName: 'venueName',
+  gurdwaraName: 'venueName',
   venueName: 'venueName',
-  hostNames: 'names'
+  hostNames: 'names',
+  eventTitle: 'title'
 };
+
+const DATE_FIELDS = ['muhurthamDate', 'nikahDate', 'matrimonyDate', 'anandKarajDate', 'eventDate'];
+const VENUE_FIELDS = ['templeVenue', 'mosqueVenue', 'churchName', 'gurdwaraName', 'venueName'];
+
+/** Fields a couple must fill: names, main date and venue */
+export function isEssentialField(field) {
+  return !!field.required || VENUE_FIELDS.includes(field.id);
+}
 
 function getFieldValue(formState, fieldId) {
   const stateKey = FIELD_STATE_MAP[fieldId] || fieldId;
   return formState[stateKey] ?? formState[fieldId] ?? '';
 }
 
-export default function ReligionFieldsEditor({ religionId, formState, onChange, onBatchChange }) {
+/** mode: 'all' | 'essential' (names, date, venue) | 'optional' (everything else) */
+export default function ReligionFieldsEditor({ religionId, formState, onChange, onBatchChange, mode = 'all' }) {
   const religion = getReligion(religionId);
   if (!religion?.fieldGroups) return null;
 
@@ -33,19 +45,21 @@ export default function ReligionFieldsEditor({ religionId, formState, onChange, 
         const v = field.type === 'boolean' ? e.target.checked : e.target.value;
         const updates = { [field.id]: v };
 
-        if (field.id === 'groomName' || field.id === 'brideName' || field.id === 'hostNames') {
+        if (field.id === 'hostNames') {
+          // The field being typed in wins over leftover sample groom/bride names
+          updates.names = v;
+        } else if (field.id === 'groomName' || field.id === 'brideName') {
           const groom = field.id === 'groomName' ? v : formState.groomName;
           const bride = field.id === 'brideName' ? v : formState.brideName;
-          const host = field.id === 'hostNames' ? v : formState.hostNames;
-          if (groom || bride) updates.names = [groom, bride].filter(Boolean).join(' & ');
-          else if (host) updates.names = host;
+          updates.names = [groom, bride].filter(Boolean).join(' & ');
         }
-        if (['muhurthamDate', 'nikahDate', 'matrimonyDate', 'eventDate'].includes(field.id)) {
+        if (DATE_FIELDS.includes(field.id)) {
           updates.date = v;
         }
-        if (['templeVenue', 'mosqueVenue', 'churchName', 'venueName'].includes(field.id)) {
+        if (VENUE_FIELDS.includes(field.id)) {
           updates.venueName = v;
         }
+        if (field.id === 'eventTitle') updates.title = v;
         if (field.id === 'groomParents') updates.parentsGroom = v;
         if (field.id === 'brideParents') updates.parentsBride = v;
 
@@ -92,12 +106,18 @@ export default function ReligionFieldsEditor({ religionId, formState, onChange, 
     <div className="religion-fields">
       {religion.fieldGroups
         .filter((g) => g.type !== 'schedule')
-        .map((group) => (
-          <div key={group.id} className="religion-field-group">
-            <h4 className="studio-subsection-title">{group.label}</h4>
-            {group.fields.map(renderField)}
-          </div>
-        ))}
+        .map((group) => {
+          const fields = group.fields.filter((f) =>
+            mode === 'all' ? true : mode === 'essential' ? isEssentialField(f) : !isEssentialField(f)
+          );
+          if (!fields.length) return null;
+          return (
+            <div key={group.id} className="religion-field-group">
+              {mode !== 'essential' && <h4 className="studio-subsection-title">{group.label}</h4>}
+              {fields.map(renderField)}
+            </div>
+          );
+        })}
     </div>
   );
 }

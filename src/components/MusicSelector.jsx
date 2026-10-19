@@ -1,15 +1,18 @@
 import React, { useState, useRef } from 'react';
-import { Music, Play, Pause, Upload, Link2 } from 'lucide-react';
+import { Music, Play, Pause, Upload, Link2, X } from 'lucide-react';
 import { MUSIC_CATEGORIES, getTracksByCategory, getMusicTrack } from '../data/musicLibrary';
 
 export default function MusicSelector({
   audioEnabled,
   audioTrack,
   customAudioUrl = '',
+  customAudioName = '',
   onChangeEnabled,
   onChangeTrack,
-  onChangeCustomUrl
+  onChangeCustomUrl,
+  onChangeCustomName = () => {}
 }) {
+  const [uploadError, setUploadError] = useState('');
   const [category, setCategory] = useState('all');
   const [previewId, setPreviewId] = useState(null);
   const previewRef = useRef(null);
@@ -43,16 +46,35 @@ export default function MusicSelector({
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('audio/')) {
-      alert('Please upload an MP3 or audio file.');
+      setUploadError('Please choose an audio file (MP3, M4A, WAV or OGG).');
       return;
     }
-    const url = URL.createObjectURL(file);
+    if (file.size > 20 * 1024 * 1024) {
+      setUploadError('That file is over 20 MB. Please use a shorter or compressed MP3.');
+      return;
+    }
+    setUploadError('');
+    stopPreview();
+    if (customAudioUrl.startsWith('blob:')) URL.revokeObjectURL(customAudioUrl);
     onChangeTrack('custom');
-    onChangeCustomUrl(url);
+    onChangeCustomUrl(URL.createObjectURL(file));
+    onChangeCustomName(file.name.replace(/\.[^.]+$/, ''));
     onChangeEnabled(true);
   };
+
+  const removeCustom = () => {
+    stopPreview();
+    if (customAudioUrl.startsWith('blob:')) URL.revokeObjectURL(customAudioUrl);
+    onChangeCustomUrl('');
+    onChangeCustomName('');
+    onChangeTrack('romantic-piano');
+  };
+
+  const hasCustom = audioTrack === 'custom' && !!customAudioUrl;
+  const customTrack = { id: 'custom-file', url: customAudioUrl };
 
   return (
     <div className="music-selector">
@@ -71,6 +93,42 @@ export default function MusicSelector({
 
       {audioEnabled && (
         <>
+          <div className={`music-own ${hasCustom ? 'has-file' : ''}`}>
+            {hasCustom ? (
+              <>
+                <button
+                  type="button"
+                  className="music-preview-btn"
+                  onClick={() => togglePreview(customTrack)}
+                  title="Preview"
+                >
+                  {previewId === customTrack.id ? <Pause size={14} /> : <Play size={14} />}
+                </button>
+                <div className="music-own-info">
+                  <strong>{customAudioName || 'Your song'}</strong>
+                  <span>Your own music · plays when the envelope opens</span>
+                </div>
+                <label className="music-own-replace" title="Replace">
+                  <Upload size={14} />
+                  <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
+                </label>
+                <button type="button" className="music-own-remove" onClick={removeCustom} title="Remove">
+                  <X size={14} />
+                </button>
+              </>
+            ) : (
+              <label className="music-own-upload">
+                <Upload size={16} />
+                <span>
+                  <strong>Upload your own song</strong>
+                  <small>MP3, M4A, WAV or OGG · up to 20 MB</small>
+                </span>
+                <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
+              </label>
+            )}
+          </div>
+          {uploadError && <p className="music-own-error">{uploadError}</p>}
+
           <div className="music-category-tabs">
             {MUSIC_CATEGORIES.map((cat) => (
               <button
@@ -134,13 +192,14 @@ export default function MusicSelector({
                 <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
               </label>
               <p className="music-custom-hint">
-                Custom uploads work in preview. For shared links, use a hosted MP3 URL.
+                Uploaded songs play in your Studio preview. Guests opening a shared link on
+                their own phone need a hosted MP3 link (paste it above).
               </p>
             </div>
           )}
 
           <p className="music-selected-label">
-            Selected: <strong>{getMusicTrack(audioTrack, customAudioUrl).label}</strong>
+            Selected: <strong>{getMusicTrack(audioTrack, customAudioUrl, customAudioName).label}</strong>
           </p>
         </>
       )}

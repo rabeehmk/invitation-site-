@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Camera, X, Download, RotateCcw, Sparkles, Share2 } from 'lucide-react';
 import { compositeSelfieWithCouple, downloadDataUrl } from '../utils/photoUtils';
-import { DEFAULT_COUPLE_FALLBACK } from '../utils/helpers';
+import { DEFAULT_COUPLE_FALLBACK, compressImage } from '../utils/helpers';
+import { useCamera, captureVideoFrame } from '../hooks/useCamera';
 
 export default function SelfieBooth({
   bridePhotoUrl,
@@ -12,8 +13,6 @@ export default function SelfieBooth({
   religion = 'custom',
   onClose
 }) {
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
   const [mode, setMode] = useState('camera');
   const [selfieData, setSelfieData] = useState(null);
   const [compositeUrl, setCompositeUrl] = useState(null);
@@ -22,43 +21,19 @@ export default function SelfieBooth({
 
   const hasCouplePhotos = bridePhotoUrl || groomPhotoUrl;
 
-  const startCamera = useCallback(async () => {
-    try {
-      setError('');
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-        audio: false
-      });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch {
-      setError('Camera access denied. Please allow camera permission or upload a photo instead.');
-      setMode('upload');
-    }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    if (mode === 'camera') startCamera();
-    return () => stopCamera();
-  }, [startCamera, stopCamera, mode]);
+  const { videoRef, videoEl, ready, error: cameraError } = useCamera({
+    active: mode === 'camera',
+    facingMode: 'user',
+    width: 1280,
+    height: 960
+  });
 
   const captureSelfie = () => {
-    if (!videoRef.current) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 640;
-    canvas.height = videoRef.current.videoHeight || 480;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(videoRef.current, 0, 0);
-    setSelfieData(canvas.toDataURL('image/jpeg', 0.85));
+    // Mirrored to match the mirrored on-screen preview
+    const frame = videoEl.current && captureVideoFrame(videoEl.current, { mirror: true, maxSize: 1080 });
+    if (!frame) return;
+    setSelfieData(frame);
     setMode('preview');
-    stopCamera();
   };
 
   const createComposite = async () => {
@@ -95,19 +70,22 @@ export default function SelfieBooth({
   const retake = () => {
     setSelfieData(null);
     setCompositeUrl(null);
+    setError('');
     setMode('camera');
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setSelfieData(ev.target.result);
+    try {
+      // Phone photos can be 10MB+; shrink before compositing
+      setSelfieData(await compressImage(file, 1080, 1080, 0.85));
+      setError('');
       setMode('preview');
-      stopCamera();
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      setError('Could not read that photo. Please try another one.');
+    }
   };
 
   const shareKeepsake = async () => {
@@ -153,28 +131,28 @@ export default function SelfieBooth({
 
         {error && <p className="selfie-error">{error}</p>}
 
-        {mode === 'camera' && !error && (
+        {mode === 'camera' && cameraError && (
+          <div className="selfie-camera-wrap">
+            <p className="selfie-error">{cameraError}</p>
+            <label className="btn-primary selfie-upload-label">
+              <Camera size={16} /> Upload Your Photo
+              <input type="file" accept="image/*" onChange={handleFileUpload} hidden />
+            </label>
+          </div>
+        )}
+
+        {mode === 'camera' && !cameraError && (
           <div className="selfie-camera-wrap">
             <video ref={videoRef} autoPlay playsInline muted className="selfie-video" />
             <div className="selfie-camera-actions">
-              <button type="button" className="btn-primary" onClick={captureSelfie}>
-                <Camera size={16} /> Take Selfie
+              <button type="button" className="btn-primary" onClick={captureSelfie} disabled={!ready}>
+                <Camera size={16} /> {ready ? 'Take Selfie' : 'Starting camera…'}
               </button>
               <label className="btn-secondary-outline selfie-upload-label">
                 Upload Photo
                 <input type="file" accept="image/*" onChange={handleFileUpload} hidden />
               </label>
             </div>
-          </div>
-        )}
-
-        {mode === 'upload' && (
-          <div className="selfie-camera-wrap">
-            <p className="selfie-desc">Camera unavailable — upload your photo instead.</p>
-            <label className="btn-primary selfie-upload-label">
-              <Camera size={16} /> Upload Your Photo
-              <input type="file" accept="image/*" onChange={handleFileUpload} hidden />
-            </label>
           </div>
         )}
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Palette, Calendar, Users, Globe, Smartphone, Monitor, Sparkles, Share2, Home, Wand2, LayoutTemplate, Settings2, ArrowLeft, PencilLine, Eye } from 'lucide-react';
+import { Layout, Palette, Calendar, Globe, Split, CircleCheck, Circle, Smartphone, Monitor, Sparkles, Share2, Home, Wand2, LayoutTemplate, Settings2, ArrowLeft, PencilLine, Eye } from 'lucide-react';
 import ThemeSelector from '../components/ThemeSelector';
 import TemplateSelector from '../components/TemplateSelector';
 import CustomizePanel, { CustomizePanelHeader } from '../components/CustomizePanel';
@@ -16,6 +16,8 @@ import { TravelDirectionsEditor } from '../components/DirectionsSection';
 import MusicSelector from '../components/MusicSelector';
 import EnvelopeIntroEditor from '../components/EnvelopeIntroEditor';
 import { publishInvitation } from '../utils/helpers';
+import { getInviteSideLabel } from '../utils/inviteSides';
+import InviteSidesEditor from '../components/InviteSidesEditor';
 import { createDefaultInvitation, getPlaceholderTitle, EVENT_TYPES, LANGUAGES, FONT_OPTIONS } from '../data/invitationModel';
 import { getDefaultSectionVisibility } from '../data/templates';
 import LayoutStructurePicker from '../components/LayoutStructurePicker';
@@ -104,12 +106,17 @@ export default function StudioView({ onNavigate, initialState = null, religionId
   const [publishError, setPublishError] = useState('');
   const [publishing, setPublishing] = useState(false);
 
-  const handlePublish = async () => {
+  const [shareSide, setShareSide] = useState('joint');
+
+  // `side` publishes the bride's or groom's family version; buttons pass a click event instead
+  const handlePublish = async (side) => {
+    const publishSide = typeof side === 'string' ? side : formState.inviteSide || 'joint';
+    const stateToPublish = { ...formState, inviteSide: publishSide };
     setPublishError('');
     setPublishing(true);
 
     try {
-      const result = await publishInvitation(formState);
+      const result = await publishInvitation(stateToPublish);
 
       if (!result.ok) {
         setPublishError(result.error || 'Failed to publish. Please try again.');
@@ -124,7 +131,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
         if (!exists) {
           history.push({
             id: result.id,
-            names: formState.names,
+            names: publishSide === 'joint' ? formState.names : `${formState.names} (${getInviteSideLabel(publishSide)})`,
             title: formState.title,
             hash,
             hashUrl,
@@ -143,6 +150,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
       setShareUrl(shareUrl);
       setShareShortUrl(shortUrl);
       setShareIsLongUrl(result.isLongUrl);
+      setShareSide(publishSide);
       setShowShareModal(true);
     } finally {
       setPublishing(false);
@@ -182,13 +190,21 @@ export default function StudioView({ onNavigate, initialState = null, religionId
     }));
   };
 
+  // Only names + date are required; venue & WhatsApp make the card useful for guests
+  const essentials = [
+    { label: 'Names', done: !!formState.names?.trim(), required: true },
+    { label: 'Date & time', done: !!formState.date, required: true },
+    { label: 'Venue', done: !!(formState.venueName?.trim() || formState.venue?.trim()), required: false },
+    { label: 'WhatsApp number', done: !!formState.contactPhone?.trim(), required: false }
+  ];
+
   const tabs = [
     { id: 'templates', label: 'Templates', icon: LayoutTemplate },
     { id: 'content', label: 'Content', icon: Layout },
-    { id: 'people', label: 'People', icon: Users },
+    { id: 'sides', label: 'Bride / Groom', icon: Split },
     { id: 'schedule', label: 'Schedule', icon: Calendar },
     { id: 'design', label: 'Design', icon: Palette },
-    { id: 'details', label: 'Details', icon: Globe },
+    { id: 'details', label: 'Extras', icon: Globe },
     { id: 'customize', label: 'Customize', icon: Settings2 },
     { id: 'ai', label: 'AI', icon: Wand2 }
   ];
@@ -316,184 +332,267 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                 </div>
               </div>
 
-              {isTraditionFlow && (
-                <ReligionFieldsEditor
-                  religionId={activeReligion}
-                  formState={formState}
-                  onChange={handleStateChange}
-                  onBatchChange={handleBatchChange}
-                />
-              )}
-
-              {!isTraditionFlow && (
-              <>
-              <div className="form-group">
-                <label htmlFor="eventType">Event Type</label>
-                <select
-                  id="eventType"
-                  value={formState.eventType}
-                  onChange={(e) => handleEventTypeChange(e.target.value)}
-                >
-                  {EVENT_TYPES.map((et) => (
-                    <option key={et.id} value={et.id}>
-                      {et.label}
-                    </option>
+              <section className="essentials-card">
+                <header className="essentials-head">
+                  <strong>Essentials</strong>
+                  <span>
+                    {essentials.filter((e) => e.done).length}/{essentials.length} done · only names &amp; date are needed to publish
+                  </span>
+                </header>
+                <ul className="essentials-checklist">
+                  {essentials.map((item) => (
+                    <li key={item.label} className={item.done ? 'done' : ''}>
+                      {item.done ? <CircleCheck size={14} /> : <Circle size={14} />}
+                      {item.label}
+                      {!item.required && <em>recommended</em>}
+                    </li>
                   ))}
-                </select>
-              </div>
+                </ul>
 
-              <div className="form-group">
-                <label htmlFor="names">Host Name(s)</label>
-                <input
-                  id="names"
-                  type="text"
-                  placeholder="e.g. Ananya & Arjun"
-                  value={formState.names}
-                  onChange={(e) => handleStateChange('names', e.target.value)}
-                  maxLength={80}
-                />
-              </div>
-              </>
-              )}
+                {isTraditionFlow ? (
+                  <ReligionFieldsEditor
+                    religionId={activeReligion}
+                    formState={formState}
+                    onChange={handleStateChange}
+                    onBatchChange={handleBatchChange}
+                    mode="essential"
+                  />
+                ) : (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="eventType">Event Type</label>
+                      <select
+                        id="eventType"
+                        value={formState.eventType}
+                        onChange={(e) => handleEventTypeChange(e.target.value)}
+                      >
+                        {EVENT_TYPES.map((et) => (
+                          <option key={et.id} value={et.id}>
+                            {et.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              {isTraditionFlow && (
+                    <div className="form-group">
+                      <label htmlFor="names">Host Name(s) *</label>
+                      <input
+                        id="names"
+                        type="text"
+                        placeholder="e.g. Ananya & Arjun"
+                        value={formState.names}
+                        onChange={(e) => handleStateChange('names', e.target.value)}
+                        maxLength={80}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="date">Date &amp; Time *</label>
+                      <input
+                        id="date"
+                        type="datetime-local"
+                        value={formState.date}
+                        onChange={(e) => handleStateChange('date', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="venueName">Venue Name</label>
+                      <input
+                        id="venueName"
+                        type="text"
+                        placeholder="e.g. Taj Convention Centre"
+                        value={formState.venueName}
+                        onChange={(e) => handleStateChange('venueName', e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
                 <div className="form-group">
-                  <label htmlFor="names">Display Names (on card)</label>
+                  <label htmlFor="venue">Venue Address</label>
                   <input
-                    id="names"
+                    id="venue"
                     type="text"
-                    value={formState.names}
-                    onChange={(e) => handleStateChange('names', e.target.value)}
-                    maxLength={80}
+                    placeholder="Street, landmark, city"
+                    value={formState.venue}
+                    onChange={(e) => handleStateChange('venue', e.target.value)}
                   />
                 </div>
-              )}
 
-              <div className="form-group">
-                <label htmlFor="title">Event Title</label>
-                <input
-                  id="title"
-                  type="text"
-                  placeholder="e.g. Wedding Invitation"
-                  value={formState.title}
-                  onChange={(e) => handleStateChange('title', e.target.value)}
-                  maxLength={100}
-                />
-              </div>
+                <div className="form-group">
+                  <label htmlFor="mapLink">Google Maps Link</label>
+                  <input
+                    id="mapLink"
+                    type="url"
+                    placeholder="Paste the Share link from Google Maps"
+                    value={formState.mapLink}
+                    onChange={(e) => handleStateChange('mapLink', e.target.value)}
+                  />
+                </div>
 
-              <div className="form-group">
-                <label htmlFor="message">Personal Message / Note</label>
-                <textarea
-                  id="message"
-                  placeholder="Write a message to your guests..."
-                  value={formState.message}
-                  onChange={(e) => handleStateChange('message', e.target.value)}
-                  rows={4}
-                  maxLength={500}
-                />
-              </div>
+                <div className="form-group">
+                  <label htmlFor="contactPhone">WhatsApp Number (for RSVPs)</label>
+                  <input
+                    id="contactPhone"
+                    type="tel"
+                    placeholder="e.g. +91 98765 43210"
+                    value={formState.contactPhone}
+                    onChange={(e) => handleStateChange('contactPhone', e.target.value)}
+                  />
+                </div>
+              </section>
 
-              {isTraditionFlow && (
-                <>
+              <details className="optional-details">
+                <summary>
+                  <span>More details <em>(optional)</em></span>
+                  <small>Parents, message, story, title…</small>
+                </summary>
+
+                {isTraditionFlow && (
+                  <ReligionFieldsEditor
+                    religionId={activeReligion}
+                    formState={formState}
+                    onChange={handleStateChange}
+                    onBatchChange={handleBatchChange}
+                    mode="optional"
+                  />
+                )}
+
+                {isTraditionFlow && (
                   <div className="form-group">
-                    <label htmlFor="coupleStory">Couple Story</label>
-                    <textarea
-                      id="coupleStory"
-                      placeholder="How you met, your journey together..."
-                      value={formState.coupleStory || ''}
-                      onChange={(e) => handleStateChange('coupleStory', e.target.value)}
-                      rows={5}
-                      maxLength={800}
+                    <label htmlFor="names">Names as shown on the card</label>
+                    <input
+                      id="names"
+                      type="text"
+                      value={formState.names}
+                      onChange={(e) => handleStateChange('names', e.target.value)}
+                      maxLength={80}
+                    />
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label htmlFor="title">Invitation Title</label>
+                  <input
+                    id="title"
+                    type="text"
+                    placeholder="Filled in automatically from the names"
+                    value={formState.title}
+                    onChange={(e) => handleStateChange('title', e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="message">Message to Guests</label>
+                  <textarea
+                    id="message"
+                    placeholder="Write a message to your guests..."
+                    value={formState.message}
+                    onChange={(e) => handleStateChange('message', e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                  />
+                </div>
+
+                {isTraditionFlow && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="coupleStory">Couple Story</label>
+                      <textarea
+                        id="coupleStory"
+                        placeholder="How you met, your journey together..."
+                        value={formState.coupleStory || ''}
+                        onChange={(e) => handleStateChange('coupleStory', e.target.value)}
+                        rows={4}
+                        maxLength={800}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="blessingText">Custom Blessing Note</label>
+                      <textarea
+                        id="blessingText"
+                        placeholder="Override or extend the default blessing..."
+                        value={formState.blessingText || ''}
+                        onChange={(e) => handleStateChange('blessingText', e.target.value)}
+                        rows={2}
+                        maxLength={300}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {!isTraditionFlow && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="parentsGroom">Groom — S/o (Parents)</label>
+                      <input
+                        id="parentsGroom"
+                        type="text"
+                        placeholder="e.g. S/o Shri. Rajan & Smt. Lakshmi"
+                        value={formState.parentsGroom}
+                        onChange={(e) => handleStateChange('parentsGroom', e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="parentsBride">Bride — D/o (Parents)</label>
+                      <input
+                        id="parentsBride"
+                        type="text"
+                        placeholder="e.g. D/o Shri. Mohan & Smt. Geetha"
+                        value={formState.parentsBride}
+                        onChange={(e) => handleStateChange('parentsBride', e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="form-row-2">
+                  <div className="form-group">
+                    <label htmlFor="familyGroom">Groom&apos;s Family</label>
+                    <input
+                      id="familyGroom"
+                      type="text"
+                      placeholder="e.g. The Rajan Family, Kochi"
+                      value={formState.familyGroom}
+                      onChange={(e) => handleStateChange('familyGroom', e.target.value)}
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="blessingText">Custom Blessing Note (optional)</label>
-                    <textarea
-                      id="blessingText"
-                      placeholder="Override or extend the default religion blessing..."
-                      value={formState.blessingText || ''}
-                      onChange={(e) => handleStateChange('blessingText', e.target.value)}
-                      rows={2}
-                      maxLength={300}
+                    <label htmlFor="familyBride">Bride&apos;s Family</label>
+                    <input
+                      id="familyBride"
+                      type="text"
+                      placeholder="e.g. The Mohan Family, Thrissur"
+                      value={formState.familyBride}
+                      onChange={(e) => handleStateChange('familyBride', e.target.value)}
                     />
                   </div>
-                </>
-              )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="contactName">Contact Person&apos;s Name</label>
+                  <input
+                    id="contactName"
+                    type="text"
+                    placeholder="e.g. Rajesh (Brother)"
+                    value={formState.contactName}
+                    onChange={(e) => handleStateChange('contactName', e.target.value)}
+                  />
+                </div>
+              </details>
             </div>
           )}
 
-          {activeTab === 'people' && (
+          {activeTab === 'sides' && (
             <div className="animate-fade-in">
-              <h3 className="studio-section-title">Family & Contact</h3>
-              <p style={{ fontSize: '12px', opacity: 0.7, margin: '0 0 16px 0' }}>
-                Common in Indian invites — parents&apos; names (S/o, D/o) and family details.
-              </p>
-
-              <div className="form-group">
-                <label htmlFor="parentsGroom">Groom — S/o (Parents)</label>
-                <input
-                  id="parentsGroom"
-                  type="text"
-                  placeholder="e.g. S/o Shri. Rajan & Smt. Lakshmi"
-                  value={formState.parentsGroom}
-                  onChange={(e) => handleStateChange('parentsGroom', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="parentsBride">Bride — D/o (Parents)</label>
-                <input
-                  id="parentsBride"
-                  type="text"
-                  placeholder="e.g. D/o Shri. Mohan & Smt. Geetha"
-                  value={formState.parentsBride}
-                  onChange={(e) => handleStateChange('parentsBride', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="familyGroom">Groom&apos;s Family</label>
-                <input
-                  id="familyGroom"
-                  type="text"
-                  placeholder="e.g. The Rajan Family, Kochi"
-                  value={formState.familyGroom}
-                  onChange={(e) => handleStateChange('familyGroom', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="familyBride">Bride&apos;s Family</label>
-                <input
-                  id="familyBride"
-                  type="text"
-                  placeholder="e.g. The Mohan Family, Thrissur"
-                  value={formState.familyBride}
-                  onChange={(e) => handleStateChange('familyBride', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="contactName">RSVP Contact Name</label>
-                <input
-                  id="contactName"
-                  type="text"
-                  placeholder="e.g. Rajesh (Brother)"
-                  value={formState.contactName}
-                  onChange={(e) => handleStateChange('contactName', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="contactPhone">Contact Phone / WhatsApp</label>
-                <input
-                  id="contactPhone"
-                  type="tel"
-                  placeholder="e.g. +91 9876543210"
-                  value={formState.contactPhone}
-                  onChange={(e) => handleStateChange('contactPhone', e.target.value)}
-                />
-              </div>
+              <InviteSidesEditor
+                formState={formState}
+                onChange={handleStateChange}
+                onPublish={handlePublish}
+                publishing={publishing}
+              />
             </div>
           )}
 
@@ -523,9 +622,11 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                 audioEnabled={formState.audioEnabled}
                 audioTrack={formState.audioTrack}
                 customAudioUrl={formState.customAudioUrl || ''}
+                customAudioName={formState.customAudioName || ''}
                 onChangeEnabled={(v) => handleStateChange('audioEnabled', v)}
                 onChangeTrack={(v) => handleStateChange('audioTrack', v)}
                 onChangeCustomUrl={(v) => handleStateChange('customAudioUrl', v)}
+                onChangeCustomName={(v) => handleStateChange('customAudioName', v)}
               />
 
               <EnvelopeIntroEditor formState={formState} onChange={handleStateChange} />
@@ -578,6 +679,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                 </select>
               </div>
 
+              {!isTraditionFlow && (
               <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                 <label htmlFor="showHijriDate" style={{ cursor: 'pointer', margin: 0 }}>
                   Show Hijri / Islamic Date
@@ -590,35 +692,28 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                   onChange={(e) => handleStateChange('showHijriDate', e.target.checked)}
                 />
               </div>
+              )}
             </div>
           )}
 
           {activeTab === 'details' && (
             <div className="animate-fade-in">
-              <h3 className="studio-section-title">Date, Venue & RSVP</h3>
+              <h3 className="studio-section-title">Extras</h3>
+              <p className="studio-section-desc" style={{ marginBottom: '16px' }}>
+                All optional — fill only what you need. Empty sections are hidden from guests.
+              </p>
 
-              <div className="form-row-2">
-                <div className="form-group">
-                  <label htmlFor="date">Start Date & Time</label>
-                  <input
-                    id="date"
-                    type="datetime-local"
-                    value={formState.date}
-                    onChange={(e) => handleStateChange('date', e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="endDate">End Date & Time (optional)</label>
-                  <input
-                    id="endDate"
-                    type="datetime-local"
-                    value={formState.endDate}
-                    onChange={(e) => handleStateChange('endDate', e.target.value)}
-                  />
-                </div>
+              <div className="form-group">
+                <label htmlFor="endDate">End Date &amp; Time</label>
+                <input
+                  id="endDate"
+                  type="datetime-local"
+                  value={formState.endDate}
+                  onChange={(e) => handleStateChange('endDate', e.target.value)}
+                />
               </div>
 
-              {(formState.eventType === 'wedding' || formState.eventType === 'anniversary') && (
+              {!isTraditionFlow && (formState.eventType === 'wedding' || formState.eventType === 'anniversary') && (
                 <CouplePhotoUpload
                   bridePhoto={formState.bridePhoto}
                   groomPhoto={formState.groomPhoto}
@@ -626,40 +721,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                 />
               )}
 
-              <div className="form-group">
-                <label htmlFor="venueName">Venue Name</label>
-                <input
-                  id="venueName"
-                  type="text"
-                  placeholder="e.g. Taj Convention Centre"
-                  value={formState.venueName}
-                  onChange={(e) => handleStateChange('venueName', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="venue">Full Address</label>
-                <input
-                  id="venue"
-                  type="text"
-                  placeholder="Street, city, pin code"
-                  value={formState.venue}
-                  onChange={(e) => handleStateChange('venue', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="mapLink">Google Maps Link</label>
-                <input
-                  id="mapLink"
-                  type="url"
-                  placeholder="https://maps.google.com/?cid=..."
-                  value={formState.mapLink}
-                  onChange={(e) => handleStateChange('mapLink', e.target.value)}
-                />
-              </div>
-
-              <TravelDirectionsEditor formState={formState} onChange={handleStateChange} />
+              <TravelDirectionsEditor formState={formState} onChange={handleStateChange} showSides={false} />
 
               <div className="studio-subsection-divider" style={{ margin: '20px 0 16px 0', borderBottom: '1px solid var(--studio-card-border)' }} />
               <h4 className="studio-subsection-title">Dress Code & Hospitality</h4>
@@ -723,17 +785,6 @@ export default function StudioView({ onNavigate, initialState = null, religionId
 
               {formState.rsvpEnabled && (
                 <>
-                  <div className="form-group animate-fade-in">
-                    <label htmlFor="rsvpPhone">WhatsApp for RSVPs</label>
-                    <input
-                      id="rsvpPhone"
-                      type="tel"
-                      placeholder="e.g. +919876543210"
-                      value={formState.rsvpPhone}
-                      onChange={(e) => handleStateChange('rsvpPhone', e.target.value)}
-                    />
-                  </div>
-
                   <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                     <label htmlFor="mealPreferenceEnabled" style={{ cursor: 'pointer', margin: 0 }}>
                       Ask Meal Preference (Veg/Non-Veg)
@@ -761,15 +812,6 @@ export default function StudioView({ onNavigate, initialState = null, religionId
                   onChange={(e) => handleStateChange('guestbookEnabled', e.target.checked)}
                 />
               </div>
-
-              <MusicSelector
-                audioEnabled={formState.audioEnabled}
-                audioTrack={formState.audioTrack}
-                customAudioUrl={formState.customAudioUrl || ''}
-                onChangeEnabled={(v) => handleStateChange('audioEnabled', v)}
-                onChangeTrack={(v) => handleStateChange('audioTrack', v)}
-                onChangeCustomUrl={(v) => handleStateChange('customAudioUrl', v)}
-              />
             </div>
           )}
 
@@ -806,7 +848,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
             type="button"
             className="btn-primary"
             onClick={handlePublish}
-            disabled={!formState.names.trim() || !formState.title.trim() || !formState.date || publishing}
+            disabled={!formState.names.trim() || !formState.date || publishing}
           >
             <Share2 size={16} /> {publishing ? 'Publishing…' : 'Publish & Share'}
           </button>
@@ -876,7 +918,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
           type="button"
           className="studio-mobile-bar-publish"
           onClick={handlePublish}
-          disabled={!formState.names.trim() || !formState.title.trim() || !formState.date || publishing}
+          disabled={!formState.names.trim() || !formState.date || publishing}
         >
           <Share2 size={16} />
           <span>{publishing ? 'Publishing…' : 'Publish'}</span>
@@ -888,6 +930,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
           invitationUrl={shareUrl}
           shortUrl={shareShortUrl}
           isLongUrl={shareIsLongUrl}
+          title={shareSide === 'joint' ? '' : `${getInviteSideLabel(shareSide)} invitation`}
           onClose={() => setShowShareModal(false)}
         />
       )}

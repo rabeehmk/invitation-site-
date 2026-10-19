@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import LayoutPhoto from './LayoutPhoto';
 import {
   resolveHeroPhoto,
+  resolveSecondaryPhoto,
   resolvePageBackground,
   buildPageBackgroundStyle,
   pageBackgroundClass,
@@ -43,6 +44,7 @@ export default function SplitScreen({ state, ctx, coverPhotoUrl }) {
         <div className="split-pattern-bg" aria-hidden="true" />
         <LayoutPhoto
           src={photo}
+          secondarySrc={resolveSecondaryPhoto(state, photo)}
           frame={state.religion === 'muslim' ? 'mihrab-arch' : state.religion === 'hindu' ? 'temple-arch' : 'oval'}
           className="split-photo"
           religion={state.religion}

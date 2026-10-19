@@ -70,10 +70,10 @@ const LEGACY_TRACK_IDS = {
   lounge: 'chill-lounge'
 };
 
-export function getMusicTrack(trackId, customAudioUrl = '') {
+export function getMusicTrack(trackId, customAudioUrl = '', customAudioName = '') {
   const resolvedId = LEGACY_TRACK_IDS[trackId] || trackId;
   if (resolvedId === 'custom' && customAudioUrl) {
-    return { id: 'custom', label: 'Custom Music', url: customAudioUrl };
+    return { id: 'custom', label: customAudioName || 'Custom Music', url: customAudioUrl };
   }
   return MUSIC_TRACKS.find((t) => t.id === resolvedId) || MUSIC_TRACKS[0];
 }

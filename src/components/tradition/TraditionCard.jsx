@@ -25,14 +25,16 @@ import EnvelopeIntro from '../EnvelopeIntro';
 import { ENVELOPE_FADE_DELAY, ENVELOPE_UNMOUNT_DELAY } from '../../config/envelope';
 import { playMusic, stopMusic } from '../../utils/audioPlayback';
 import { getPresetImageUrl, getMusicTrack } from '../../utils/helpers';
-import { hexToRgbString, isLightBackground, ensureReadableColor } from '../../utils/colorUtils';
+import { hexToRgbString, isLightBackground, ensureReadableColor, getContrastRatio } from '../../utils/colorUtils';
 import { formatEventDate, formatEventTime, toHijriDate } from '../../utils/dateUtils';
 import { t } from '../../data/i18n';
 import { getReligion } from '../../config/religions';
 import { getTemplateById } from '../../config/index';
 import { getDefaultSectionVisibility } from '../../data/templates';
+import { applyInviteSide } from '../../utils/inviteSides';
 
-export default function TraditionCard({ state, isPreviewMode = false }) {
+export default function TraditionCard({ state: rawState, isPreviewMode = false }) {
+  const state = applyInviteSide(rawState);
   const {
     theme = 'dark-gold',
     eventType = 'wedding',
@@ -51,6 +53,7 @@ export default function TraditionCard({ state, isPreviewMode = false }) {
     uploadedPhoto = '',
     audioTrack = 'none',
     customAudioUrl = '',
+    customAudioName = '',
     audioEnabled = true,
     musicStartAt = 0,
     musicVolume = 70,
@@ -107,7 +110,8 @@ export default function TraditionCard({ state, isPreviewMode = false }) {
     accentColor || palette.primary || '#D4AF37',
     palette.bg,
     [palette.secondary, palette.primary],
-    1.8
+    // Dark pages need a stronger minimum; light pages keep deliberate soft pairings
+    isLightBackground(palette.bg) ? 1.8 : 3
   );
 
   const [envelopeOpen, setEnvelopeOpen] = useState(false);
@@ -120,7 +124,7 @@ export default function TraditionCard({ state, isPreviewMode = false }) {
   const coverPhotoUrl =
     customBackground || (isUploaded && uploadedPhoto ? uploadedPhoto : getPresetImageUrl(eventType, presetIdx));
 
-  const activeTrack = getMusicTrack(audioTrack, customAudioUrl);
+  const activeTrack = getMusicTrack(audioTrack, customAudioUrl, customAudioName);
   const textDir = language === 'ar' ? 'rtl' : religionConfig.supportsRtl && bilingual && secondaryLanguage === 'ar' ? 'rtl' : 'ltr';
   const invitationId = isPreviewMode ? 'preview' : window.location.hash;
   const hasFamilyDetails = vis.showFamilyDetails !== false && (parentsGroom || parentsBride);
@@ -188,7 +192,7 @@ export default function TraditionCard({ state, isPreviewMode = false }) {
 
   return (
     <div
-      className={`tradition-card theme-${theme} religion-${religion} layout-${layoutStructure} layout-legacy-${state.layout || 'centered-symmetric'} ${lightCard ? 'tradition-card--light' : 'tradition-card--dark'}`}
+      className={`tradition-card theme-${theme} religion-${religion} tradition-card--layout-${layoutStructure} layout-legacy-${state.layout || 'centered-symmetric'} ${lightCard ? 'tradition-card--light' : 'tradition-card--dark'}`}
       dir={textDir}
       style={{
         '--tradition-primary': resolvedAccent,
@@ -208,7 +212,9 @@ export default function TraditionCard({ state, isPreviewMode = false }) {
         '--theme-text': palette.text,
         '--theme-text-muted': `color-mix(in srgb, ${palette.text} 65%, transparent)`,
         '--theme-card-bg': lightCard ? 'rgba(255,255,255,0.88)' : 'rgba(18, 20, 29, 0.85)',
-        '--theme-card-border': `rgba(${accentRgb}, 0.22)`
+        '--theme-card-border': `rgba(${accentRgb}, 0.22)`,
+        // Text on accent-filled buttons: white unless the accent is too light (e.g. gold)
+        '--on-accent': getContrastRatio('#FFFFFF', resolvedAccent) >= 3 ? '#FFFFFF' : '#1A1A1A'
       }}
     >
       {!envelopeUnmounted && (

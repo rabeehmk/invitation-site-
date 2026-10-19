@@ -10,6 +10,7 @@ import { WEDDING_PRESETS } from '../data/weddingPresets.js';
 
 const VALID_THEMES = ['dark-gold', 'rose-ivory', 'sage-cream', 'modern-gradient', 'classic-burgundy'];
 const MAX_URL_PHOTO_LEN = 9000;
+const MAX_SHARE_URL_LEN = 60000;
 
 /** Compress a data-URL image for URL embedding */
 export function compressDataUrl(dataUrl, maxWidth = 480, maxHeight = 480, quality = 0.62, force = false) {
@@ -56,8 +57,8 @@ export async function preparePhotosForPublish(state) {
     next[key] = await compressDataUrl(next[key], w, h, q, true);
   };
 
-  await shrink('bridePhoto', 400, 400, 0.68);
-  await shrink('groomPhoto', 400, 400, 0.68);
+  await shrink('bridePhoto', 400, 500, 0.7);
+  await shrink('groomPhoto', 400, 500, 0.7);
   await shrink('uploadedPhoto', 560, 560, 0.65);
   await shrink('cardPhoto', 560, 560, 0.65);
   await shrink('customBackground', 800, 540, 0.55);
@@ -396,7 +397,13 @@ export const serializeState = (state) => {
       gnote: safe.giftNote || '',
       lsu: safe.liveStreamUrl || '',
       acc: safe.accommodationInfo || '',
-      cr: safe.ceremonyRituals || ''
+      cr: safe.ceremonyRituals || '',
+      // Bride's / groom's family invitation
+      is: safe.inviteSide && safe.inviteSide !== 'joint' ? safe.inviteSide : '',
+      bed: safe.brideEventDate || '',
+      ged: safe.groomEventDate || '',
+      bmsg: safe.brideMessage || '',
+      gmsg: safe.groomMessage || ''
     };
 
     const jsonStr = JSON.stringify(essentialState);
@@ -502,9 +509,13 @@ export async function publishInvitation(state) {
     hash: serializedHash,
     hashUrl,
     shortUrl,
-    /** Prefer hash URL for WhatsApp (works on any device). Short URL is fallback on same browser. */
-    shareUrl: hashUrl.length <= 1800 ? hashUrl : shortUrl,
-    isLongUrl: hashUrl.length > 1800,
+    /**
+     * The full (hash) link carries the whole invitation, so it opens on any phone.
+     * Short links only resolve in the creator's browser (localStorage), so they are
+     * a last resort for invitations too big for a WhatsApp message (~65k chars).
+     */
+    shareUrl: hashUrl.length <= MAX_SHARE_URL_LEN ? hashUrl : shortUrl,
+    isLongUrl: hashUrl.length > MAX_SHARE_URL_LEN,
     photosCompressed: true
   };
 }
@@ -645,6 +656,11 @@ export const deserializeState = (hashStr) => {
       liveStreamUrl: parsed.lsu || '',
       accommodationInfo: parsed.acc || '',
       ceremonyRituals: parsed.cr || '',
+      inviteSide: parsed.is || 'joint',
+      brideEventDate: parsed.bed || '',
+      groomEventDate: parsed.ged || '',
+      brideMessage: parsed.bmsg || '',
+      groomMessage: parsed.gmsg || '',
       planTier: 'free'
     });
   } catch (error) {

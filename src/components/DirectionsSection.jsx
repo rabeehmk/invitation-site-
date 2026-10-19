@@ -204,7 +204,7 @@ function LocationFields({ prefix, label, accentClass, formState, onChange }) {
 }
 
 /** Studio editor for travel & event location fields */
-export function TravelDirectionsEditor({ formState, onChange }) {
+export function TravelDirectionsEditor({ formState, onChange, showSides = true }) {
   return (
     <div className="travel-editor">
       <h3 className="studio-section-title">Travel & Directions</h3>
@@ -246,6 +246,9 @@ export function TravelDirectionsEditor({ formState, onChange }) {
         </div>
       </div>
 
+      {/* Side contacts & locations live in the Bride / Groom tab */}
+      {showSides && (
+      <>
       <div className="studio-subsection">
         <h4 className="studio-subsection-title">Side Contacts</h4>
         <div className="form-row-2">
@@ -292,6 +295,8 @@ export function TravelDirectionsEditor({ formState, onChange }) {
           onChange={onChange}
         />
       </div>
+      </>
+      )}
     </div>
   );
 }

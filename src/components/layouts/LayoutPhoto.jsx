@@ -42,8 +42,8 @@ export default function LayoutPhoto({
   if (secondarySrc) {
     return (
       <div className={`layout-photo layout-photo--collage layout-photo--${frame} ${className}`}>
-        <img src={src} alt={alt} className="layout-photo-collage-main" draggable={false} />
-        <img src={secondarySrc} alt="" className="layout-photo-collage-secondary" draggable={false} />
+        <img src={src} alt="Bride" className="layout-photo-collage-main" draggable={false} />
+        <img src={secondarySrc} alt="Groom" className="layout-photo-collage-secondary" draggable={false} />
       </div>
     );
   }

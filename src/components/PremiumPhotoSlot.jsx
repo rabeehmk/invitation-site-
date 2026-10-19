@@ -1,7 +1,8 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
-import { Camera, Upload, X, Sparkles, RotateCcw } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Camera, Upload, X, Sparkles, SwitchCamera } from 'lucide-react';
 import { compressImage } from '../utils/helpers';
 import { enhancePhotoDataUrl, smartCropToAspect } from '../utils/photoUtils';
+import { useCamera, captureVideoFrame } from '../hooks/useCamera';
 
 /**
  * Premium photo slot — upload, camera capture, preview, optional AI enhance.
@@ -17,12 +18,17 @@ export default function PremiumPhotoSlot({
   accentClass = ''
 }) {
   const fileRef = useRef(null);
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [facing, setFacing] = useState('user');
   const [error, setError] = useState('');
+  const { videoRef, videoEl, ready, error: cameraError } = useCamera({
+    active: cameraOpen,
+    facingMode: facing,
+    width: 1280,
+    height: 1280
+  });
 
   const processFile = async (file) => {
     if (!file) return;
@@ -35,7 +41,6 @@ export default function PremiumPhotoSlot({
           : await compressImage(file, maxW, maxH, 0.72);
       onChange(data);
       setCameraOpen(false);
-      stopCamera();
     } catch {
       setError('Could not process image. Try another photo.');
     } finally {
@@ -43,40 +48,24 @@ export default function PremiumPhotoSlot({
     }
   };
 
-  const stopCamera = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-  }, []);
-
-  const startCamera = useCallback(async () => {
+  const startCamera = () => {
     setError('');
     setCameraOpen(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 960 } },
-        audio: false
-      });
-      streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch {
-      setError('Camera access denied. Use upload instead.');
-    }
-  }, []);
+  };
 
-  useEffect(() => () => stopCamera(), [stopCamera]);
+  const closeCamera = () => setCameraOpen(false);
 
+  // Saved photo keeps true orientation; only the front-camera preview is mirrored
   const capture = () => {
-    if (!videoRef.current) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth || 720;
-    canvas.height = videoRef.current.videoHeight || 960;
-    const ctx = canvas.getContext('2d');
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(videoRef.current, 0, 0);
-    onChange(canvas.toDataURL('image/jpeg', 0.85));
+    if (!videoEl.current) return;
+    const frame = captureVideoFrame(videoEl.current, {
+      aspect: aspect === 'portrait' ? maxW / maxH : null,
+      maxSize: Math.max(maxW, maxH),
+      quality: 0.82
+    });
+    if (!frame) return;
+    onChange(frame);
     setCameraOpen(false);
-    stopCamera();
   };
 
   const handleEnhance = async () => {
@@ -115,14 +104,40 @@ export default function PremiumPhotoSlot({
             </button>
           </div>
         </div>
+      ) : cameraOpen && cameraError ? (
+        <div className="premium-photo-camera">
+          <p className="premium-photo-error">{cameraError}</p>
+          <div className="premium-photo-camera-actions">
+            <button type="button" className="premium-photo-btn premium-photo-btn--primary" onClick={() => { closeCamera(); fileRef.current?.click(); }}>
+              <Upload size={14} /> Upload instead
+            </button>
+            <button type="button" className="premium-photo-btn" onClick={closeCamera}>
+              Back
+            </button>
+          </div>
+        </div>
       ) : cameraOpen ? (
         <div className="premium-photo-camera">
-          <video ref={videoRef} autoPlay playsInline muted className="premium-photo-video" />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`premium-photo-video ${facing === 'user' ? 'is-mirrored' : ''}`}
+          />
           <div className="premium-photo-camera-actions">
-            <button type="button" className="premium-photo-btn premium-photo-btn--primary" onClick={capture}>
-              <Camera size={14} /> Capture
+            <button type="button" className="premium-photo-btn premium-photo-btn--primary" onClick={capture} disabled={!ready}>
+              <Camera size={14} /> {ready ? 'Capture' : 'Starting…'}
             </button>
-            <button type="button" className="premium-photo-btn" onClick={() => { setCameraOpen(false); stopCamera(); }}>
+            <button
+              type="button"
+              className="premium-photo-btn"
+              onClick={() => setFacing((f) => (f === 'user' ? 'environment' : 'user'))}
+              title="Switch camera"
+            >
+              <SwitchCamera size={14} />
+            </button>
+            <button type="button" className="premium-photo-btn" onClick={closeCamera}>
               Cancel
             </button>
           </div>

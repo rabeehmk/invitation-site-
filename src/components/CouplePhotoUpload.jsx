@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Upload, X, User, Heart } from 'lucide-react';
-import { compressImage } from '../utils/helpers';
+import { smartCropToAspect } from '../utils/photoUtils';
 
 async function compressPortrait(file) {
-  return compressImage(file, 240, 300, 0.5);
+  // 4:5 portrait, sharp enough for full-screen heroes; publish step re-compresses for links
+  return smartCropToAspect(file, 640, 800, 0.82);
 }
 
 function PhotoSlot({ label, icon: Icon, photo, onUpload, onRemove, accentClass }) {

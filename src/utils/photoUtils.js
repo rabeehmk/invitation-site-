@@ -66,7 +66,8 @@ export function smartCropToAspect(file, targetW = 800, targetH = 1000, quality =
           sw = img.width;
           sh = sw / targetRatio;
           sx = 0;
-          sy = (img.height - sh) / 2;
+          // Tall photos: keep the upper part, where faces usually are
+          sy = (img.height - sh) * 0.2;
         }
 
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
@@ -195,21 +196,25 @@ export function compositeSelfieWithCouple(
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => res(img);
-        img.onerror = rej;
+        // A missing couple/fallback image just leaves that slot empty
+        img.onerror = () => (src === selfieDataUrl ? rej(new Error('Selfie could not be loaded')) : res(null));
         img.src = src;
       });
 
+    const hasCouple = !!(bridePhotoUrl || groomPhotoUrl);
     Promise.all([
       loadImage(selfieDataUrl),
       loadImage(bridePhotoUrl),
       loadImage(groomPhotoUrl),
-      loadImage(coupleFallbackUrl)
+      hasCouple ? Promise.resolve(null) : loadImage(coupleFallbackUrl)
     ])
       .then(([selfie, bride, groom, fallback]) => {
         const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        // Safari < 16 has no roundRect — fall back to square corners
+        if (!ctx.roundRect) ctx.roundRect = (x, y, w, h) => ctx.rect(x, y, w, h);
 
         // Theme background
         const bg = ctx.createLinearGradient(0, 0, width, height);
@@ -292,10 +297,33 @@ export function compositeSelfieWithCouple(
           }
 
           drawPortrait(groom, startX + colW + gap + (selfie ? colW + gap : 0), topY, colW, colH, 'Groom');
-        } else if (fallback) {
-          const fw = width * 0.7;
-          const fh = fw / 0.76;
-          ctx.drawImage(fallback, (width - fw) / 2, topY, fw, fh);
+        } else {
+          // No couple photos: illustration (if it loaded) with the guest's selfie inset
+          let selfieCx = width / 2;
+          let selfieCy = topY + height * 0.3;
+          let selfieR = width * 0.26;
+          if (fallback) {
+            const fw = width * 0.62;
+            const fh = fw / 0.76;
+            ctx.drawImage(fallback, (width - fw) / 2, topY, fw, fh);
+            selfieCx = width / 2 + fw * 0.36;
+            selfieCy = topY + fh * 0.82;
+            selfieR = width * 0.13;
+          }
+          if (selfie) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(selfieCx, selfieCy, selfieR, 0, Math.PI * 2);
+            ctx.clip();
+            const sr = Math.max((selfieR * 2) / selfie.width, (selfieR * 2) / selfie.height);
+            ctx.drawImage(selfie, selfieCx - (selfie.width * sr) / 2, selfieCy - (selfie.height * sr) / 2, selfie.width * sr, selfie.height * sr);
+            ctx.restore();
+            ctx.strokeStyle = portraitBorder;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(selfieCx, selfieCy, selfieR + 3, 0, Math.PI * 2);
+            ctx.stroke();
+          }
         }
 
         // Title

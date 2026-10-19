@@ -6328,3 +6328,349 @@ body {
     overflow-y: auto;
   }
 }
+
+/* Music picker — "upload your own song" block */
+.music-own {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.music-own.has-file {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-accent);
+  background: rgba(189, 160, 109, 0.08);
+}
+
+.music-own-upload {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed var(--studio-accent);
+  background: rgba(189, 160, 109, 0.05);
+  color: var(--studio-accent);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.music-own-upload:hover {
+  background: rgba(189, 160, 109, 0.12);
+}
+
+.music-own-upload span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.music-own-upload strong {
+  font-size: 13px;
+  color: var(--studio-text-bright);
+}
+
+.music-own-upload small {
+  font-size: 10px;
+  color: var(--studio-text);
+  opacity: 0.75;
+}
+
+.music-own-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.music-own-info strong {
+  display: block;
+  font-size: 12px;
+  color: var(--studio-text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-own-info span {
+  font-size: 10px;
+  color: var(--studio-text);
+  opacity: 0.7;
+}
+
+.music-own-replace,
+.music-own-remove {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--studio-input-border);
+  background: var(--studio-card-bg);
+  color: var(--studio-text);
+  cursor: pointer;
+}
+
+.music-own-remove:hover {
+  color: #ff8a8a;
+  border-color: rgba(255, 100, 100, 0.4);
+}
+
+.music-own-error {
+  font-size: 11px;
+  color: #ff8a8a;
+  margin: -4px 0 10px;
+}
+
+/* Bride / Groom separate invitations (Studio) */
+.invite-side-switch {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--studio-input-border);
+  background: var(--studio-input-bg);
+  margin-top: 14px;
+}
+
+.invite-side-switch-btn {
+  padding: 9px 6px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--studio-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.invite-side-switch-btn.active {
+  background: var(--studio-accent);
+  color: #111;
+}
+
+.invite-side-switch-hint {
+  font-size: 11px;
+  color: var(--studio-text);
+  opacity: 0.8;
+  margin: 8px 0 18px;
+}
+
+.invite-side-switch-hint strong {
+  color: var(--studio-accent);
+}
+
+.invite-side-card {
+  padding: 16px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--studio-input-border);
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 3px solid var(--side-accent, var(--studio-accent));
+}
+
+.invite-side-card--bride { --side-accent: #e8a0b0; }
+.invite-side-card--groom { --side-accent: #7eb8da; }
+
+.invite-side-card-header {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.invite-side-card-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--side-accent);
+  background: color-mix(in srgb, var(--side-accent) 15%, transparent);
+}
+
+.invite-side-card-header h4 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  color: var(--studio-text-bright);
+}
+
+.invite-side-card-header p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--studio-text);
+  opacity: 0.7;
+}
+
+.invite-side-card .form-group {
+  margin-bottom: 12px;
+}
+
+.invite-side-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.invite-side-btn {
+  flex: 1;
+  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--studio-input-border);
+  background: transparent;
+  color: var(--studio-text-bright);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.invite-side-btn.active {
+  border-color: var(--side-accent);
+  color: var(--side-accent);
+}
+
+.invite-side-btn--primary {
+  border: none;
+  background: linear-gradient(135deg, #d4af37 0%, #bda06d 100%);
+  color: #0b0c10;
+}
+
+.invite-side-btn--primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Studio Content tab — essentials first, everything else folded away */
+.essentials-card {
+  padding: 16px;
+  margin: 18px 0 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(189, 160, 109, 0.35);
+  background: linear-gradient(160deg, rgba(189, 160, 109, 0.08), rgba(189, 160, 109, 0.02));
+}
+
+.essentials-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 10px;
+}
+
+.essentials-head strong {
+  font-size: 14px;
+  color: var(--studio-text-bright);
+  letter-spacing: 0.02em;
+}
+
+.essentials-head span {
+  font-size: 11px;
+  color: var(--studio-text);
+  opacity: 0.8;
+}
+
+.essentials-checklist {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.essentials-checklist li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--studio-input-border);
+  font-size: 11px;
+  color: var(--studio-text);
+}
+
+.essentials-checklist li em {
+  font-style: normal;
+  font-size: 9px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.essentials-checklist li.done {
+  border-color: rgba(40, 199, 111, 0.45);
+  color: #6fe0a3;
+  background: rgba(40, 199, 111, 0.08);
+}
+
+.essentials-card .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.optional-details {
+  border: 1px solid var(--studio-input-border);
+  border-radius: 14px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.optional-details[open] {
+  padding-bottom: 16px;
+}
+
+.optional-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 0;
+  cursor: pointer;
+  list-style: none;
+  color: var(--studio-text-bright);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.optional-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.optional-details summary::after {
+  content: '+';
+  font-size: 18px;
+  color: var(--studio-accent);
+  line-height: 1;
+}
+
+.optional-details[open] summary::after {
+  content: '−';
+}
+
+.optional-details summary em {
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.optional-details summary small {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--studio-text);
+  opacity: 0.7;
+}

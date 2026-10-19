@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { X, Copy, Check, MessageCircle, Share2, ExternalLink, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
-export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, onClose }) {
+const MAX_QR_LENGTH = 2900;
+
+export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, title = '', onClose }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -52,14 +54,15 @@ export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, onClose
           <X size={18} />
         </button>
 
-        <h2 className="modal-title">✨ Your Invitation is Live!</h2>
+        <h2 className="modal-title">✨ {title ? `${title} is Live!` : 'Your Invitation is Live!'}</h2>
         <p className="modal-description">
           Your invitation is saved. Share the link below — guests can open it on any phone.
         </p>
 
         {isLongUrl && (
           <p className="modal-warning">
-            Tip: Remove uploaded photos if the link fails on WhatsApp — large images make links too long.
+            This invitation has too many photos to fit in a link, so this short link only opens on
+            this device. Remove some gallery photos and publish again to get a link guests can open.
           </p>
         )}
 
@@ -72,15 +75,22 @@ export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, onClose
           </p>
         )}
 
-        {/* QR Code Container */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <div className="qr-container">
-            <QRCodeSVG value={invitationUrl} size={140} level="M" includeMargin={true} />
-            <p style={{ color: '#000', fontSize: '10px', fontWeight: 'bold', margin: '4px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Scan QR Code
-            </p>
+        {/* QR codes hold ~2,900 characters; longer links would crash the QR renderer */}
+        {invitationUrl.length <= MAX_QR_LENGTH ? (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+            <div className="qr-container">
+              <QRCodeSVG value={invitationUrl} size={160} level="L" includeMargin={true} />
+              <p style={{ color: '#000', fontSize: '10px', fontWeight: 'bold', margin: '4px 0 0 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Scan QR Code
+              </p>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="modal-description" style={{ fontSize: '12px', opacity: 0.75 }}>
+            This invitation carries a lot of details, so it is too big for a QR code —
+            share it on WhatsApp or copy the link below.
+          </p>
+        )}
 
         {/* Share Link Row */}
         <div className="share-link-box">

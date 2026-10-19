@@ -4,6 +4,7 @@ import SceneIllustration, { getSceneFrame } from './SceneIllustration';
 import LayoutPhoto from './LayoutPhoto';
 import {
   resolveHeroPhoto,
+  resolveSecondaryPhoto,
   resolvePageBackground,
   buildPageBackgroundStyle,
   pageBackgroundClass,
@@ -49,6 +50,7 @@ export default function IllustratedStorybook({ state, ctx, coverPhotoUrl }) {
         <div className="illustrated-frame">
           <LayoutPhoto
             src={photo}
+            secondarySrc={resolveSecondaryPhoto(state, photo)}
             frame={frame}
             className="illustrated-photo"
             religion={state.religion}

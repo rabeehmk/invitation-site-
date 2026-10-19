@@ -75,18 +75,22 @@
   opacity: 0.45;
 }
 
+/* Bride + groom side by side: two equal portraits, faces kept in frame */
 .layout-photo--collage {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 4px;
-  min-height: 100%;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  background: var(--layout-accent, #c9a227);
 }
 
 .layout-photo-collage-main,
 .layout-photo-collage-secondary {
   width: 100%;
   height: 100%;
+  min-height: 0;
   object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
 
 .layout-photo--animation {
@@ -2563,4 +2567,115 @@
 .tradition-card .accommodation-contact-badge,
 .tradition-card .section-panel-icon-wrap {
   color: var(--hero-accent, var(--theme-accent));
+}
+
+/* ==========================================================================
+   Couple photos — every hero photo slot gets a definite height so single
+   photos and bride + groom pairs fill it instead of collapsing or stretching
+   ========================================================================== */
+.split-photo,
+.canvas-card-photo,
+.illustrated-photo {
+  aspect-ratio: auto;
+}
+
+.split-photo {
+  height: min(70vh, 560px);
+  min-height: 0;
+}
+
+.canvas-card-photo {
+  height: 380px;
+  min-height: 0;
+  max-height: none;
+}
+
+.illustrated-photo {
+  height: 320px;
+  min-height: 0;
+}
+
+.full-bleed-photo.layout-photo--collage {
+  gap: 2px;
+}
+
+/* A pair needs more width than a single portrait inside narrow frames */
+.split-photo.layout-photo--collage {
+  max-width: 420px;
+}
+
+.illustrated-photo.layout-photo--collage {
+  max-width: 400px;
+}
+
+@container layout (max-width: 640px) {
+  .split-photo.layout-photo--collage,
+  .illustrated-photo.layout-photo--collage,
+  .split-photo.layout-photo--mihrab-arch.layout-photo--collage,
+  .illustrated-photo.layout-photo--mihrab-arch.layout-photo--collage {
+    max-width: 100%;
+  }
+
+  .layout-photo--collage .layout-photo-collage-main,
+  .layout-photo--collage .layout-photo-collage-secondary {
+    object-position: center 18%;
+  }
+}
+
+/* Typography layout: optional couple strip at the bottom */
+.typo-minimal-photo-break .layout-photo {
+  height: min(50vh, 420px);
+  border-radius: 2px;
+}
+
+@container layout (max-width: 640px) {
+  .split-photo {
+    height: clamp(300px, 58vh, 420px);
+  }
+
+  .canvas-card-photo {
+    height: clamp(260px, 52vh, 380px);
+  }
+
+  .illustrated-photo {
+    height: clamp(240px, 48vh, 340px);
+  }
+}
+
+/* Front camera preview is mirrored like a mirror; the saved photo is not */
+.premium-photo-video.is-mirrored {
+  transform: scaleX(-1);
+}
+
+.premium-photo-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.selfie-camera-actions .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: wait;
+  transform: none;
+}
+
+/* Buttons filled with the accent colour use a readable text colour */
+.tradition-card .btn-rsvp-submit,
+.tradition-card .guest-photo-moment-btn,
+.tradition-card .guest-camera-fab,
+.tradition-card .btn-theme-outline:hover {
+  color: var(--on-accent, #fff);
+}
+
+.tradition-footer {
+  opacity: 0.7;
+}
+
+/* Couple names scale with the card's own width (cqw), not the browser window,
+   so long full names fit inside the Studio phone frame and on real phones alike */
+@container layout (max-width: 640px) {
+  .full-bleed-names { font-size: clamp(30px, 11cqw, 52px); }
+  .split-names { font-size: clamp(26px, 9cqw, 40px); }
+  .canvas-card-names { font-size: clamp(24px, 8.5cqw, 36px); }
+  .typo-minimal-name-line { font-size: clamp(30px, 11cqw, 48px); }
+  .illustrated-names { font-size: clamp(24px, 8.5cqw, 34px); }
 }

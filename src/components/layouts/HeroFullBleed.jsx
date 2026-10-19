@@ -18,7 +18,7 @@ export default function HeroFullBleed({ state, ctx, coverPhotoUrl }) {
   const sectionRef = useRef(null);
   const pageBg = resolvePageBackground(state);
   const photo = resolveHeroPhoto(state, coverPhotoUrl);
-  const secondary = resolveSecondaryPhoto(state);
+  const secondary = resolveSecondaryPhoto(state, photo);
   const { labels, fonts, accent, palette, hijriDate, showHijri } = ctx;
 
   const { scrollYProgress } = useScroll({

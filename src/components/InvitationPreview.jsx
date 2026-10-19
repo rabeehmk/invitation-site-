@@ -19,11 +19,13 @@ import { formatEventDate, formatEventTime, toHijriDate } from '../utils/dateUtil
 import { t } from '../data/i18n';
 import { FONT_OPTIONS } from '../data/invitationModel';
 import { getDefaultSectionVisibility } from '../data/templates';
+import { applyInviteSide } from '../utils/inviteSides';
 import EnvelopeIntro from './EnvelopeIntro';
 import { ENVELOPE_FADE_DELAY, ENVELOPE_UNMOUNT_DELAY } from '../config/envelope';
 import { playMusic, stopMusic } from '../utils/audioPlayback';
 
-export default function InvitationPreview({ state, isPreviewMode = false }) {
+export default function InvitationPreview({ state: rawState, isPreviewMode = false }) {
+  const state = applyInviteSide(rawState);
   const {
     theme = 'dark-gold',
     eventType = 'wedding',
@@ -42,6 +44,7 @@ export default function InvitationPreview({ state, isPreviewMode = false }) {
     uploadedPhoto = '',
     audioTrack = 'none',
     customAudioUrl = '',
+    customAudioName = '',
     audioEnabled = true,
     musicStartAt = 0,
     musicVolume = 70,
@@ -101,7 +104,7 @@ export default function InvitationPreview({ state, isPreviewMode = false }) {
   const coverPhotoUrl =
     isUploaded && uploadedPhoto ? uploadedPhoto : getPresetImageUrl(eventType, presetIdx);
 
-  const activeTrack = getMusicTrack(audioTrack, customAudioUrl);
+  const activeTrack = getMusicTrack(audioTrack, customAudioUrl, customAudioName);
   const fontFamily = FONT_OPTIONS.find((f) => f.id === font)?.cssVar || 'var(--font-serif)';
   const textDir = language === 'ar' ? 'rtl' : 'ltr';
   const invitationId = isPreviewMode ? 'preview' : window.location.hash;

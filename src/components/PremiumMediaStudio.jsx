@@ -1,7 +1,8 @@
 import React from 'react';
-import { Image, Layers, Heart, Sparkles, Palette } from 'lucide-react';
+import { Image, Layers, Heart, Sparkles, Palette, Music } from 'lucide-react';
 import PremiumPhotoSlot from './PremiumPhotoSlot';
 import GalleryUpload from './GalleryUpload';
+import MusicSelector from './MusicSelector';
 import TraditionCustomizePanel from './TraditionCustomizePanel';
 import { generateAIBackground } from '../utils/photoUtils';
 import { resolveLayoutStructure } from '../config/layoutStructures';
@@ -102,6 +103,23 @@ export default function PremiumMediaStudio({ religionId, formState, onChange, on
             accentClass="premium-slot--groom"
           />
         </div>
+      </section>
+
+      <section className="premium-media-section">
+        <h4><Music size={14} /> Background Music</h4>
+        <p className="premium-media-desc">
+          Pick a track or upload your own song — it starts when guests open the envelope.
+        </p>
+        <MusicSelector
+          audioEnabled={formState.audioEnabled}
+          audioTrack={formState.audioTrack}
+          customAudioUrl={formState.customAudioUrl || ''}
+          customAudioName={formState.customAudioName || ''}
+          onChangeEnabled={(v) => onChange('audioEnabled', v)}
+          onChangeTrack={(v) => onChange('audioTrack', v)}
+          onChangeCustomUrl={(v) => onChange('customAudioUrl', v)}
+          onChangeCustomName={(v) => onChange('customAudioName', v)}
+        />
       </section>
 
       <GalleryUpload

@@ -1,13 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import LayoutPhoto from './LayoutPhoto';
 import {
   resolveHeroPhoto,
+  resolveSecondaryPhoto,
   resolvePageBackground,
   buildPageBackgroundStyle,
   pageBackgroundClass,
   formatProseDate
 } from './layoutUtils';
-import { formatEventDate } from '../../utils/dateUtils';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 export default function TypographyMinimal({ state, ctx, coverPhotoUrl }) {
@@ -76,7 +77,13 @@ export default function TypographyMinimal({ state, ctx, coverPhotoUrl }) {
 
       {showBottomPhoto && (
         <div className="typo-minimal-photo-break">
-          <img src={optionalPhoto} alt="" className="typo-minimal-photo-full" draggable={false} />
+          <LayoutPhoto
+            src={optionalPhoto}
+            secondarySrc={resolveSecondaryPhoto(state, optionalPhoto)}
+            className="typo-minimal-photo-full"
+            religion={state.religion}
+            theme={state.theme}
+          />
         </div>
       )}
     </section>
