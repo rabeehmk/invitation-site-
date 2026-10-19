@@ -107,6 +107,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
   const [publishing, setPublishing] = useState(false);
 
   const [shareSide, setShareSide] = useState('joint');
+  const [shareNotice, setShareNotice] = useState('');
 
   // `side` publishes the bride's or groom's family version; buttons pass a click event instead
   const handlePublish = async (side) => {
@@ -124,6 +125,13 @@ export default function StudioView({ onNavigate, initialState = null, religionId
       }
 
       const { shareUrl, hash, hashUrl, shortUrl } = result;
+      setShareNotice(
+        result.storage !== 'cloud'
+          ? 'Could not save online right now, so this link carries the whole invitation and may break if it is shortened by an app. Check your connection and publish again for a short link.'
+          : result.audioTooLarge
+            ? 'Your uploaded song is over 2.5 MB, so guests will not hear it. Upload a shorter or compressed MP3 and publish again.'
+            : ''
+      );
 
       try {
         const history = JSON.parse(localStorage.getItem('aura_creations') || '[]');
@@ -931,6 +939,7 @@ export default function StudioView({ onNavigate, initialState = null, religionId
           shortUrl={shareShortUrl}
           isLongUrl={shareIsLongUrl}
           title={shareSide === 'joint' ? '' : `${getInviteSideLabel(shareSide)} invitation`}
+          notice={shareNotice}
           onClose={() => setShowShareModal(false)}
         />
       )}

@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 const MAX_QR_LENGTH = 2900;
 
-export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, title = '', onClose }) {
+export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, title = '', notice = '', onClose }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -58,6 +58,8 @@ export default function ShareModal({ invitationUrl, shortUrl, isLongUrl, title =
         <p className="modal-description">
           Your invitation is saved. Share the link below — guests can open it on any phone.
         </p>
+
+        {notice && <p className="modal-warning">{notice}</p>}
 
         {isLongUrl && (
           <p className="modal-warning">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Home, AlertCircle } from 'lucide-react';
 import InvitationPreview from '../components/InvitationPreview';
 import TraditionCard from '../components/tradition/TraditionCard';
-import { loadInvitationData } from '../utils/helpers';
+import { loadInvitationDataAsync } from '../utils/helpers';
 import { incrementViewCount } from '../utils/dateUtils';
 
 export default function GuestView({ data }) {
@@ -10,8 +10,16 @@ export default function GuestView({ data }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (data) {
-      const state = loadInvitationData(data);
+    if (!data) {
+      setError(true);
+      return undefined;
+    }
+    let cancelled = false;
+    setError(false);
+    setInvitationState(null);
+    // Cloud links (#/i/c/…) are fetched online; older links decode instantly
+    loadInvitationDataAsync(data).then((state) => {
+      if (cancelled) return;
       if (state) {
         setInvitationState(state);
         document.title = state.title || 'Aura Invite';
@@ -19,9 +27,10 @@ export default function GuestView({ data }) {
       } else {
         setError(true);
       }
-    } else {
-      setError(true);
-    }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [data]);
 
   if (error) {

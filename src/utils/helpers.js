@@ -12,6 +12,61 @@ const VALID_THEMES = ['dark-gold', 'rose-ivory', 'sage-cream', 'modern-gradient'
 const MAX_URL_PHOTO_LEN = 9000;
 const MAX_SHARE_URL_LEN = 60000;
 
+/* ---------- Cloud short links (Netlify function + Blobs) ---------- */
+const CLOUD_API = '/api/invite';
+const CLOUD_ID_PATTERN = /^[a-z0-9]{10}$/;
+const MAX_CLOUD_AUDIO_BYTES = 2.5 * 1024 * 1024;
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/** An uploaded song only exists in this browser (blob:) — embed it so guests can hear it */
+async function embedUploadedAudio(state) {
+  const url = state.customAudioUrl || '';
+  if (!url.startsWith('blob:')) return state;
+  try {
+    const blob = await (await fetch(url)).blob();
+    if (blob.size > MAX_CLOUD_AUDIO_BYTES) return { ...state, customAudioUrl: '', audioTooLarge: true };
+    return { ...state, customAudioUrl: await blobToDataUrl(blob) };
+  } catch {
+    return { ...state, customAudioUrl: '' };
+  }
+}
+
+/** Saves the invitation online; returns its short id, or null when the cloud is unavailable */
+async function saveInvitationToCloud(state) {
+  try {
+    const res = await fetch(CLOUD_API, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ state })
+    });
+    if (!res.ok) return null;
+    const { id } = await res.json();
+    return CLOUD_ID_PATTERN.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadInvitationFromCloud(id) {
+  if (!CLOUD_ID_PATTERN.test(id)) return null;
+  try {
+    const res = await fetch(`${CLOUD_API}?id=${id}`);
+    if (!res.ok) return null;
+    const { state } = await res.json();
+    return state ? normalizeInvitationState(state) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Compress a data-URL image for URL embedding */
 export function compressDataUrl(dataUrl, maxWidth = 480, maxHeight = 480, quality = 0.62, force = false) {
   if (!dataUrl || !dataUrl.startsWith('data:image')) {
@@ -503,12 +558,37 @@ export async function publishInvitation(state) {
   const hashUrl = `${base}#/i/${serializedHash}`;
   const shortUrl = `${base}#/i/s/${id}`;
 
+  // Preferred: store online and share a short link that opens on any phone.
+  // Cloud copies keep the sharper (pre-link-compression) photos and uploaded music.
+  let cloudState = await embedUploadedAudio(normalized);
+  let cloudId = await saveInvitationToCloud(cloudState);
+  if (!cloudId) {
+    // Retry with the link-compressed photos in case the full-quality copy was too large
+    cloudState = await embedUploadedAudio(withPhotos);
+    cloudId = await saveInvitationToCloud(cloudState);
+  }
+  if (cloudId) {
+    const cloudUrl = `${base}#/i/c/${cloudId}`;
+    return {
+      ok: true,
+      id: cloudId,
+      hash: serializedHash,
+      hashUrl: cloudUrl,
+      shortUrl: '',
+      shareUrl: cloudUrl,
+      isLongUrl: false,
+      storage: 'cloud',
+      audioTooLarge: !!cloudState.audioTooLarge
+    };
+  }
+
   return {
     ok: true,
     id,
     hash: serializedHash,
     hashUrl,
     shortUrl,
+    storage: 'link',
     /**
      * The full (hash) link carries the whole invitation, so it opens on any phone.
      * Short links only resolve in the creator's browser (localStorage), so they are
@@ -518,6 +598,15 @@ export async function publishInvitation(state) {
     isLongUrl: hashUrl.length > MAX_SHARE_URL_LEN,
     photosCompressed: true
   };
+}
+
+/**
+ * Loads an invitation for the guest page; cloud links (#/i/c/{id}) are fetched online.
+ */
+export async function loadInvitationDataAsync(routeData) {
+  const cleaned = cleanRoutePayload(routeData);
+  if (cleaned.startsWith('c/')) return loadInvitationFromCloud(cleaned.slice(2));
+  return loadInvitationData(routeData);
 }
 
 /**
